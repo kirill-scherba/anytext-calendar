@@ -60,3 +60,17 @@ tools of `mail-mcp` (1.1.1 and newer) through the installation's MCP gateway.
   Checked against the live calendar of the owner's account through a gateway and directly through
   `mail-mcp`'s stdio (`calendar_calendars`, expanded recurring events, all-day events by a date pair,
   clearing a description).
+
+## 21.11.2026 — напоминания из календаря: галка в модуле, доставка у установки
+
+- Кирилл: «в Telegram бот ещё», и «галку включения/выключения сделать в модуле календаря, а настройку
+  куда отправлять — потом, в настройках AnyText, чтобы все оповещения шли через одно место».
+- В установке появилась **одна дверь уведомлений**: MCP-сервер `notify` с инструментом `notify_send`
+  (`/api/mcp/notify`), команда `notify.send` и `Server.NotifyOwner` — чат (плагин opencode на 7799) и
+  телефон (Telegram через сайт → API → бот). Каналы независимы: один упавший назван, другой работает.
+  Проверено: `{"chat":"ok","telegram":"ok"}`.
+- В календаре — кнопка «Напоминания»: `GET/POST /api/reminders`. Модуль находит задачу сторожа по
+  префиксу названия, создаёт её при включении, переписывает текст при каждом включении и ставит на
+  паузу при выключении; сама задача живёт в планировщике и видна в модуле «Задачи».
+- Сторож больше не зовёт `notify_opencode`: его текст говорит `notify_send`, поэтому напоминание
+  приходит и в чат, и в телефон, а куда именно — решает установка (раздел настроек — следующий шаг).

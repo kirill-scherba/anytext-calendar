@@ -27,6 +27,7 @@ func main() {
 	addr := flag.String("addr", "127.0.0.1:7840", "address to listen on (loopback only)")
 	mcp := flag.String("mcp", "", "MCP gateway base address (default: ANYTEXT_MCP_PROXY or http://127.0.0.1:7711)")
 	server := flag.String("server", "mail-mcp", "MCP server that holds the calendar tools")
+	install := flag.String("install", "", "installation address (default: ANYTEXT_SELF or http://127.0.0.1:7787)")
 	flag.Parse()
 
 	base := strings.TrimRight(strings.TrimSpace(*mcp), "/")
@@ -37,7 +38,15 @@ func main() {
 		base = "http://127.0.0.1:7711"
 	}
 
-	a := &app{cal: newCalendarClient(base, *server)}
+	self := strings.TrimRight(strings.TrimSpace(*install), "/")
+	if self == "" {
+		self = strings.TrimRight(os.Getenv("ANYTEXT_SELF"), "/")
+	}
+	if self == "" {
+		self = "http://127.0.0.1:7787"
+	}
+
+	a := &app{cal: newCalendarClient(base, *server), clock: newSchedulerClient(self)}
 	log.Printf("anytext-calendar %s: %s, gateway %s, server %s", version, *addr, base, *server)
 	log.Fatal(http.ListenAndServe(*addr, a.routes()))
 }

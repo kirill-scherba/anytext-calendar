@@ -35,6 +35,11 @@ const STRINGS = {
     attendees: 'Участники (адреса через запятую)',
     repeatHint: 'Это повторяющееся событие: правка изменит только этот раз.',
     inGoogle: 'Открыть в Google Календаре',
+    watch: 'Напоминания',
+    watchTitle: 'Напоминать за 30 минут о событиях основного и семейного календаря',
+    watchOn: 'Напоминания включены',
+    watchOff: 'Напоминания выключены',
+    watchFailed: 'Не удалось переключить напоминания',
     delete: 'Удалить', cancel: 'Отмена', save: 'Сохранить',
     needTitle: 'Нужно название события',
     endBeforeStart: 'Конец должен быть позже начала',
@@ -55,6 +60,11 @@ const STRINGS = {
     attendees: 'Guests (addresses, comma separated)',
     repeatHint: 'This is a recurring event: the change applies to this occurrence only.',
     inGoogle: 'Open in Google Calendar',
+    watch: 'Reminders',
+    watchTitle: 'Remind me 30 minutes before events of the main and family calendars',
+    watchOn: 'Reminders are on',
+    watchOff: 'Reminders are off',
+    watchFailed: 'The reminders could not be switched',
     delete: 'Delete', cancel: 'Cancel', save: 'Save',
     needTitle: 'An event needs a title',
     endBeforeStart: 'The end must be after the start',
@@ -154,6 +164,7 @@ const state = {
   events: [],
   errors: [],
   ready: false,
+  reminders: { enabled: false, ready: false },
   statusError: '',
   version: '',
   gateway: '',
@@ -232,6 +243,46 @@ async function loadCalendars(fresh) {
   state.calendars = answer.calendars || []
   ensureSelection()
   renderCalendars()
+}
+
+async function loadReminders() {
+  try {
+    const r = await api('api/reminders')
+    state.reminders = { enabled: !!r.enabled, ready: true }
+    if (r.error) showNotice(`${t('watchFailed')}: ${r.error}`, true)
+  } catch (e) {
+    state.reminders = { enabled: false, ready: false }
+  }
+  renderWatch()
+}
+
+/** renderWatch paints the switch: a person must see whether reminders run without opening anything. */
+function renderWatch() {
+  const button = $('watch')
+  if (!button) return
+  const on = state.reminders.enabled
+  button.classList.toggle('active', on)
+  button.title = t('watchTitle')
+  button.setAttribute('aria-pressed', on ? 'true' : 'false')
+}
+
+async function toggleReminders() {
+  const button = $('watch')
+  button.disabled = true
+  try {
+    const r = await api('api/reminders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: !state.reminders.enabled }),
+    })
+    state.reminders = { enabled: !!r.enabled, ready: true }
+    hideNotice()
+  } catch (e) {
+    showNotice(`${t('watchFailed')}: ${e.message}`)
+  } finally {
+    button.disabled = false
+    renderWatch()
+  }
 }
 
 async function loadEvents() {
@@ -844,6 +895,7 @@ function bind() {
     const selected = state.selected.size === 1 ? [...state.selected][0] : undefined
     openEditor(null, { date: dateKey(state.cursor), calendar: selected })
   })
+  $('watch').addEventListener('click', toggleReminders)
   $('refresh').addEventListener('click', async () => {
     try {
       await loadCalendars(true)
@@ -927,6 +979,7 @@ async function start() {
   }
   bind()
   await loadStatus()
+  await loadReminders()
   try {
     await loadCalendars(false)
   } catch (e) {

@@ -23,6 +23,12 @@
       <button type="button" class="text" data-view="agenda" data-i18n="agenda">Список</button>
     </div>
     <div class="actions">
+      <!-- The switch of the calendar watcher: the task lives in the installation's clock and is
+           visible in the tasks module; here is only its on/off, because a reminder is a calendar
+           thing to want. -->
+      <button type="button" class="text" id="watch" data-i18n-title="watchTitle">
+        <span data-i18n="watch">Напоминания</span>
+      </button>
       <button type="button" class="text primary" id="new" data-i18n="newEvent">+ Событие</button>
       <button type="button" class="icon" id="refresh" data-i18n-title="refresh">⟳</button>
     </div>

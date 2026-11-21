@@ -21,9 +21,11 @@ import (
 	"time"
 )
 
-// app is the module with its single dependency: the calendar that mail-mcp owns.
+// app is the module with its two dependencies: the calendar that mail-mcp owns, and the
+// installation's clock, which owns the calendar watcher.
 type app struct {
-	cal *calendarClient
+	cal   *calendarClient
+	clock *schedulerClient
 }
 
 // routes is the whole surface of the module.
@@ -38,6 +40,8 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/events", a.createEvent)
 	mux.HandleFunc("PATCH /api/events", a.updateEvent)
 	mux.HandleFunc("DELETE /api/events", a.deleteEvent)
+	mux.HandleFunc("GET /api/reminders", a.reminders)
+	mux.HandleFunc("POST /api/reminders", a.setReminders)
 	// The screen is one document: its styles and its script come inside it (ui.go explains why).
 	mux.HandleFunc("GET /ui/", a.page)
 	return mux
@@ -420,4 +424,76 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 
 func writeError(w http.ResponseWriter, code int, err error) {
 	writeJSON(w, code, map[string]any{"error": err.Error()})
+}
+
+// reminders says whether the calendar watcher runs. The task itself lives in the installation's
+// clock and is visible in the tasks module; this module only owns its on/off switch and its text.
+func (a *app) reminders(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	if a.clock == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"enabled": false, "error": "установка не сообщила свой адрес"})
+		return
+	}
+	task, found, err := a.clock.Watcher(ctx)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"enabled": false, "error": err.Error()})
+		return
+	}
+	answer := map[string]any{"enabled": found && task.Enabled, "lead_min": watchLead, "every": watchEvery}
+	if found {
+		answer["task_id"] = task.ID
+	}
+	writeJSON(w, http.StatusOK, answer)
+}
+
+// setReminders turns the watcher on or off. On creates it when it is missing and rewrites its text
+// when it is there: the text belongs to the module, the clock belongs to the installation.
+func (a *app) setReminders(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&in); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("тело запроса не разобрано: %w", err))
+		return
+	}
+	if a.clock == nil {
+		writeError(w, http.StatusBadGateway, errors.New("установка не сообщила свой адрес: напоминания недоступны"))
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+	defer cancel()
+
+	task, found, err := a.clock.Watcher(ctx)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	if !found {
+		if !in.Enabled {
+			writeJSON(w, http.StatusOK, map[string]any{"enabled": false})
+			return
+		}
+		created, err := a.clock.Create(ctx, watchAction(), time.Now().Add(time.Minute), watchEvery)
+		if err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"enabled": true, "task_id": created.ID})
+		return
+	}
+	// The text is refreshed every time the switch is used: the calendars and the lead live in the
+	// module, and a task edited by hand in the tasks module gets the current text back only when a
+	// person touches this switch on purpose.
+	if in.Enabled {
+		if err := a.clock.SetAction(ctx, task.ID, watchAction()); err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if err := a.clock.Toggle(ctx, task.ID, in.Enabled); err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"enabled": in.Enabled, "task_id": task.ID})
 }

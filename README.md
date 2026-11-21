@@ -56,6 +56,7 @@ The window shows the module under the puzzle button. Its own screens are at
 | week | hours from 00 to 23, all-day events in a strip above, overlaps side by side |
 | list | everything in the month, grouped by day |
 | calendars | a chip per calendar with a checkbox and Google's own colour; the choice is remembered per browser |
+| reminders | one switch: the calendar's own task in the installation's clock, which tells its owner 30 minutes before an event. The task is visible and editable in the tasks module; the delivery (chat, phone) belongs to the installation, not to this module |
 | editor | title, calendar, all-day switch, start and end, place, description, guests; delete |
 
 The screen is **one self-contained document**: the styles and the script are inside the page, not
@@ -82,6 +83,8 @@ The screen and anything else may use it; the installation's proxy is the only wa
 | `POST /api/events` | create; all-day events take a date pair, timed ones RFC 3339 with an offset |
 | `PATCH /api/events?id=…&calendar=…` | change only the fields sent; an empty string clears a field |
 | `DELETE /api/events?id=…&calendar=…` | delete one event, or one occurrence |
+| `GET /api/reminders` | whether the calendar watcher runs, its lead and its task id |
+| `POST /api/reminders` | `{"enabled":true|false}` — create the watcher, rewrite its text, pause or resume it |
 
 `from` and `to` are RFC 3339 with an offset: the browser writes its own.
 
