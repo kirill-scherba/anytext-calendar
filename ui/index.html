@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <base href="{{.Prefix}}/" />
   <title>Календарь</title>
-  <link rel="stylesheet" href="ui/style.css" />
+  <!-- The styles and the script are inside the page: an iframe cannot put the account token on a
+       <link> or a <script src>, and through the relay those requests are refused (21.11.2026). -->
+  <style>{{.Style}}</style>
 </head>
 <body>
   <header class="topbar">
@@ -98,6 +100,6 @@
     </form>
   </dialog>
 
-  <script src="ui/app.js"></script>
+  <script>{{.Script}}</script>
 </body>
 </html>

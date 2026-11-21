@@ -320,3 +320,35 @@ func TestEventsResolveThePrimaryAlias(t *testing.T) {
 		t.Errorf("event not resolved to the real calendar: %+v", ev)
 	}
 }
+
+// TestPageIsSelfContained: the styles and the script travel inside the page. A <link> or a
+// <script src> cannot carry the account token through the relay, so a module split into files shows
+// bare HTML in the remote window (21.11.2026 - exactly what Kirill saw).
+func TestPageIsSelfContained(t *testing.T) {
+	srv := testApp(t, calendarGateway(""))
+	res, err := http.Get(srv.URL + "/ui/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	raw, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(raw)
+
+	for _, forbidden := range []string{`<script src=`, `<link rel="stylesheet"`} {
+		if strings.Contains(html, forbidden) {
+			t.Errorf("page asks the browser for a separate file (%s): it will not load through the relay", forbidden)
+		}
+	}
+	// The page carries the styles and the behaviour, not placeholders.
+	for _, needle := range []string{".topbar", "function renderMonth", "topbar"} {
+		if !strings.Contains(html, needle) {
+			t.Errorf("page does not contain %q", needle)
+		}
+	}
+	if strings.Contains(html, "{{") {
+		t.Error("template markers left in the page")
+	}
+}

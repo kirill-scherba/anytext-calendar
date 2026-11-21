@@ -38,8 +38,20 @@ tools of `mail-mcp` (1.1.1 and newer) through the installation's MCP gateway.
 - The week view lays overlapping events side by side in equal columns; it does not pack them.
 - The screen asks for up to 2500 events per calendar per range.
 
+## Lessons
+
+- 21.11.2026: **a module's screen must be one document.** The styles and the script went as separate
+  files (`ui/style.css`, `ui/app.js`) and everything worked at the machine. In the remote client the
+  person saw only the bare toolbar on a white background: the shell fetches the page with the account
+  token and puts it into the frame, but a `<link>` or a `<script src>` inside that frame is a request
+  of the browser, which carries no token - the relay refuses it. The same reason keeps every module
+  that works remotely single-file. The page now carries `<style>` and `<script>` inline, built from
+  the same files at start, and `TestPageIsSelfContained` refuses a page that asks for a separate file.
+
 ## Recent changes
 
+- 21.11.2026: 0.1.1 — the screen is one self-contained document, so the remote client shows the same
+  calendar as the local one.
 - 21.11.2026: first version 0.1.0 — month, week, list, editor, several calendars, the calendar chips.
   Checked against the live calendar of the owner's account through a gateway and directly through
   `mail-mcp`'s stdio (`calendar_calendars`, expanded recurring events, all-day events by a date pair,

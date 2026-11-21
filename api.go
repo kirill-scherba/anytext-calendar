@@ -38,9 +38,8 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/events", a.createEvent)
 	mux.HandleFunc("PATCH /api/events", a.updateEvent)
 	mux.HandleFunc("DELETE /api/events", a.deleteEvent)
+	// The screen is one document: its styles and its script come inside it (ui.go explains why).
 	mux.HandleFunc("GET /ui/", a.page)
-	mux.HandleFunc("GET /ui/app.js", a.asset("app.js", "text/javascript; charset=utf-8"))
-	mux.HandleFunc("GET /ui/style.css", a.asset("style.css", "text/css; charset=utf-8"))
 	return mux
 }
 

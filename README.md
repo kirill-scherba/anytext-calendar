@@ -58,6 +58,11 @@ The window shows the module under the puzzle button. Its own screens are at
 | calendars | a chip per calendar with a checkbox and Google's own colour; the choice is remembered per browser |
 | editor | title, calendar, all-day switch, start and end, place, description, guests; delete |
 
+The screen is **one self-contained document**: the styles and the script are inside the page, not
+separate files. A module's frame is filled through the relay, and a `<link>` or a `<script src>` from
+that frame carries no account token — the relay refuses it, and a module split into files shows bare
+HTML on a white background. This module learned it the hard way on 21.11.2026.
+
 A click on an empty place of a day starts an event there; a click on an event opens it.
 
 Editing one occurrence of a recurring event changes that occurrence only — the calendar API's own rule,
