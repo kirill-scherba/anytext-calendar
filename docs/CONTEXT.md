@@ -47,6 +47,10 @@ tools of `mail-mcp` (1.1.1 and newer) through the installation's MCP gateway.
   of the browser, which carries no token - the relay refuses it. The same reason keeps every module
   that works remotely single-file. The page now carries `<style>` and `<script>` inline, built from
   the same files at start, and `TestPageIsSelfContained` refuses a page that asks for a separate file.
+  Verified without the relay: a local proxy that answers 401 to every `/api/*` without a token, and a
+  harness page that repeats the shell's work (fetch with the token, inject `<base>` and a `fetch`
+  wrapper, put the result into `srcdoc`). The calendar renders fully there while the old page would
+  have been refused at its stylesheet.
 
 ## Recent changes
 
