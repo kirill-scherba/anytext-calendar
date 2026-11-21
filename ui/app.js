@@ -273,7 +273,7 @@ async function toggleReminders() {
     const r = await api('api/reminders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: !state.reminders.enabled }),
+      body: JSON.stringify({ enabled: !state.reminders.enabled, lang }),
     })
     state.reminders = { enabled: !!r.enabled, ready: true }
     hideNotice()

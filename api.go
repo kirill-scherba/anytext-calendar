@@ -451,7 +451,8 @@ func (a *app) reminders(w http.ResponseWriter, r *http.Request) {
 // when it is there: the text belongs to the module, the clock belongs to the installation.
 func (a *app) setReminders(w http.ResponseWriter, r *http.Request) {
 	var in struct {
-		Enabled bool `json:"enabled"`
+		Enabled bool   `json:"enabled"`
+		Lang    string `json:"lang"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(&in); err != nil {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("тело запроса не разобрано: %w", err))
@@ -474,7 +475,8 @@ func (a *app) setReminders(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusOK, map[string]any{"enabled": false})
 			return
 		}
-		created, err := a.clock.Create(ctx, watchAction(), time.Now().Add(time.Minute), watchEvery)
+		created, err := a.clock.Create(ctx, watcherTitle(langOf(in.Lang, r)), watchAction(langOf(in.Lang, r)),
+			time.Now().Add(time.Minute), watchEvery)
 		if err != nil {
 			writeError(w, http.StatusBadGateway, err)
 			return
@@ -486,7 +488,8 @@ func (a *app) setReminders(w http.ResponseWriter, r *http.Request) {
 	// module, and a task edited by hand in the tasks module gets the current text back only when a
 	// person touches this switch on purpose.
 	if in.Enabled {
-		if err := a.clock.SetAction(ctx, task.ID, watchAction()); err != nil {
+		lang := langOf(in.Lang, r)
+		if err := a.clock.SetTexts(ctx, task.ID, watcherTitle(lang), watchAction(lang)); err != nil {
 			writeError(w, http.StatusBadGateway, err)
 			return
 		}
@@ -496,4 +499,17 @@ func (a *app) setReminders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"enabled": in.Enabled, "task_id": task.ID})
+}
+
+// langOf is the language of the window: what the screen said, or what the browser asks for. The task
+// text and its name are written in it, so a person working in English does not get a Russian task
+// (21.11.2026).
+func langOf(fromScreen string, r *http.Request) string {
+	candidates := []string{fromScreen, r.Header.Get("X-AnyText-Lang"), r.Header.Get("Accept-Language")}
+	for _, raw := range candidates {
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), "en") {
+			return "en"
+		}
+	}
+	return "ru"
 }

@@ -20,6 +20,7 @@ type fakeClock struct {
 	created []map[string]any
 	toggled []bool
 	updated []string
+	titles  []string
 }
 
 func (f *fakeClock) handler() http.HandlerFunc {
@@ -45,6 +46,9 @@ func (f *fakeClock) handler() http.HandlerFunc {
 		case "scheduler_update":
 			if a, ok := req.Params.Arguments["action"].(string); ok {
 				f.updated = append(f.updated, a)
+			}
+			if t, ok := req.Params.Arguments["title"].(string); ok {
+				f.titles = append(f.titles, t)
 			}
 			result = map[string]any{"id": req.Params.Arguments["id"], "enabled": true}
 		case "scheduler_toggle":
@@ -100,6 +104,9 @@ func TestRemindersSwitchCreatesTheWatcher(t *testing.T) {
 	if got := clock.created[0]["every"]; got != "15m" {
 		t.Errorf("every = %v", got)
 	}
+	if title, _ := clock.created[0]["title"].(string); !strings.HasPrefix(title, "Сторож календаря") {
+		t.Errorf("a Russian window must name the task in Russian, got %q", title)
+	}
 }
 
 // TestRemindersSwitchTogglesAnExistingWatcher: the task stays, its text is refreshed, and the switch
@@ -145,5 +152,47 @@ func TestRemindersSwitchTogglesAnExistingWatcher(t *testing.T) {
 	res.Body.Close()
 	if len(clock.updated) != 1 || !strings.Contains(clock.updated[0], "notify_send") {
 		t.Errorf("the text was not refreshed on resume: %v", clock.updated)
+	}
+}
+
+// TestRemindersSpeakTheWindowsLanguage: an English window gets an English task name and text, and
+// the task is still found afterwards — otherwise every language switch would leave a second watcher.
+func TestRemindersSpeakTheWindowsLanguage(t *testing.T) {
+	clock := &fakeClock{}
+	srv := remindersServer(t, clock)
+
+	res, err := http.Post(srv.URL+"/api/reminders", "application/json", strings.NewReader(`{"enabled":true,"lang":"en"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+
+	title, _ := clock.created[0]["title"].(string)
+	if !strings.HasPrefix(title, "Calendar watcher") {
+		t.Fatalf("title = %q", title)
+	}
+	action, _ := clock.created[0]["action"].(string)
+	for _, want := range []string{"You are the calendar watcher", "notify_send", "In N min:"} {
+		if !strings.Contains(action, want) {
+			t.Errorf("the English text does not mention %q", want)
+		}
+	}
+
+	// The English task is found by the module: no second watcher is made on the next switch.
+	clock.tasks = []map[string]any{{"id": "w-en", "title": title, "enabled": true}}
+	buf := new(strings.Builder)
+	if err := json.NewEncoder(buf).Encode(clock); err != nil {
+		t.Fatal(err)
+	}
+	res, err = http.Post(srv.URL+"/api/reminders", "application/json", strings.NewReader(`{"enabled":false,"lang":"en"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if len(clock.created) != 1 {
+		t.Errorf("a second watcher was created: %v", clock.created)
+	}
+	if len(clock.toggled) != 1 || clock.toggled[0] != false {
+		t.Errorf("toggled = %v", clock.toggled)
 	}
 }

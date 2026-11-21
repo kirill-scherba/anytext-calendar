@@ -18,10 +18,6 @@ import (
 	"time"
 )
 
-// watcherTitle names the task the calendar owns. A person may rename it in the tasks module; the
-// search is by prefix so a renamed tail still matches.
-const watcherTitle = "Сторож календаря"
-
 // schedulerClient calls the tools of one installation's schedule.
 type schedulerClient struct {
 	base string
@@ -108,17 +104,19 @@ func (c *schedulerClient) Watcher(ctx context.Context) (scheduled, bool, error) 
 		return scheduled{}, false, fmt.Errorf("список задач не разобран: %w", err)
 	}
 	for _, task := range answer.Tasks {
-		if strings.HasPrefix(task.Title, watcherTitle) {
-			return task, true, nil
+		for _, title := range watcherTitles {
+			if strings.HasPrefix(task.Title, title) {
+				return task, true, nil
+			}
 		}
 	}
 	return scheduled{}, false, nil
 }
 
 // Create writes the watcher task and answers with it.
-func (c *schedulerClient) Create(ctx context.Context, action string, when time.Time, every string) (scheduled, error) {
+func (c *schedulerClient) Create(ctx context.Context, title, action string, when time.Time, every string) (scheduled, error) {
 	raw, err := c.call(ctx, "scheduler_create", map[string]any{
-		"title":   watcherTitle + ": напоминания за 30 минут",
+		"title":   title,
 		"action":  action,
 		"when":    when.Format(time.RFC3339),
 		"every":   every,
@@ -134,9 +132,11 @@ func (c *schedulerClient) Create(ctx context.Context, action string, when time.T
 	return task, nil
 }
 
-// SetAction rewrites the text of the watcher: the calendars and the lead may change, the clock stays.
-func (c *schedulerClient) SetAction(ctx context.Context, id, action string) error {
-	_, err := c.call(ctx, "scheduler_update", map[string]any{"id": id, "action": action})
+// SetTexts rewrites the name and the text of the watcher: the calendars, the lead and the language may
+// change, the clock stays. The name follows the language like the text does - an English window with a
+// Russian task name is a half-translated task.
+func (c *schedulerClient) SetTexts(ctx context.Context, id, title, action string) error {
+	_, err := c.call(ctx, "scheduler_update", map[string]any{"id": id, "title": title, "action": action})
 	return err
 }
 
