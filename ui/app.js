@@ -413,25 +413,25 @@ function renderMonth(root) {
 }
 
 function renderWeek(root) {
-  const week = document.createElement('div')
-  week.className = 'week'
-  const names = weekdayNames()
   const first = startOfWeek(state.cursor)
+  const names = weekdayNames()
   const todayKey = dateKey(new Date())
 
-  // Header row: an empty corner, then the seven days.
-  week.appendChild(cell('div', 'corner'))
+  // Two grids with the same columns: the head stays on top while the hours scroll under it, so a
+  // person at 15:00 still sees which day is which.
+  const head = document.createElement('div')
+  head.className = 'week week-head'
+  head.appendChild(cell('div', 'corner'))
   for (let i = 0; i < 7; i++) {
     const day = addDays(first, i)
-    const head = document.createElement('div')
-    head.className = 'weekday' + (dateKey(day) === todayKey ? ' today' : '')
-    head.textContent = `${names[i]} ${day.getDate()}`
-    week.appendChild(head)
+    const headCell = document.createElement('div')
+    headCell.className = 'weekday' + (dateKey(day) === todayKey ? ' today' : '')
+    headCell.textContent = `${names[i]} ${day.getDate()}`
+    head.appendChild(headCell)
   }
 
-  // All-day strip: one row per day, with the events that cover it.
   const allDay = state.events.filter((ev) => ev.all_day)
-  week.appendChild(Object.assign(document.createElement('div'), { className: 'allday-label', textContent: '' }))
+  head.appendChild(cell('div', 'allday-label'))
   for (let i = 0; i < 7; i++) {
     const day = addDays(first, i)
     const key = dateKey(day)
@@ -450,26 +450,27 @@ function renderWeek(root) {
       chip.title = ev.summary
       cellEl.appendChild(chip)
     }
-    week.appendChild(cellEl)
+    head.appendChild(cellEl)
   }
 
-  // The hour grid: a label column and seven day columns with the timed events laid out on top.
+  const body = document.createElement('div')
+  body.className = 'week week-body'
+
   const labels = document.createElement('div')
-  labels.className = 'hours'
+  labels.className = 'hour-labels'
   for (let h = 0; h < 24; h++) {
     const row = document.createElement('div')
-    row.className = 'hour-label'
+    row.className = 'hl'
     row.textContent = h ? `${pad(h)}:00` : ''
     labels.appendChild(row)
   }
-  week.appendChild(labels)
+  body.appendChild(labels)
 
   const dayColumns = []
   for (let i = 0; i < 7; i++) {
     const day = addDays(first, i)
     const col = document.createElement('div')
-    col.className = 'hour day-col'
-    col.style.position = 'relative'
+    col.className = 'day-col'
     col.dataset.date = dateKey(day)
     for (let h = 0; h < 24; h++) {
       const slot = document.createElement('div')
@@ -478,7 +479,7 @@ function renderWeek(root) {
       col.appendChild(slot)
     }
     dayColumns.push(col)
-    week.appendChild(col)
+    body.appendChild(col)
   }
 
   // Timed events, per day, with overlapping ones side by side.
@@ -513,7 +514,7 @@ function renderWeek(root) {
       el.dataset.id = item.ev.id
       el.dataset.calendar = item.ev.calendar_id || ''
       el.style.cssText = chipStyle(item.ev.calendar_id) +
-        `;top:${item.top}px;height:${item.height}px;` +
+        `;top:${Math.round(item.top)}px;height:${Math.round(item.height)}px;` +
         `left:calc(${(item.col / columns) * 100}% + 2px);width:calc(${100 / columns}% - 4px)`
       el.innerHTML = `<span class="t">${esc(timeLabel(item.ev))}</span>${esc(item.ev.summary)}`
       el.title = `${item.ev.summary}\n${timeLabel(item.ev)}`
@@ -521,7 +522,8 @@ function renderWeek(root) {
     }
   }
 
-  root.appendChild(week)
+  root.appendChild(head)
+  root.appendChild(body)
   // A week opens at the working day, not at midnight.
   requestAnimationFrame(() => {
     const scroller = $('view')
@@ -900,11 +902,27 @@ function applyTexts() {
 }
 
 async function start() {
+  // A direct link may name the language, the view and the day (…/ui/?view=week&date=2026-12-01).
+  // Inside the shell's frame the page has no address of its own - its URL is the window's - so the
+  // query is read only when the module is opened directly.
+  const inFrame = window.self !== window.top
+  const params = new URLSearchParams(window.location.search)
+  if (!inFrame) {
+    const qLang = params.get('lang')
+    if (LANGS.includes(qLang)) lang = qLang
+    const qView = params.get('view')
+    if (['month', 'week', 'agenda'].includes(qView)) state.view = qView
+    const qDate = params.get('date')
+    if (/^\d{4}-\d{2}-\d{2}$/.test(qDate || '')) state.cursor = parseDateKey(qDate)
+  }
   applyTheme()
   applyTexts()
-  try {
-    state.view = localStorage.getItem(VIEW_KEY) || 'month'
-  } catch (e) { /* private mode */ }
+  // The view is remembered between visits; a link that names one wins over the memory.
+  if (inFrame || !params.get('view')) {
+    try {
+      state.view = localStorage.getItem(VIEW_KEY) || state.view
+    } catch (e) { /* private mode */ }
+  }
   bind()
   await loadStatus()
   try {

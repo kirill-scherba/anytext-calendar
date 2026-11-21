@@ -15,7 +15,7 @@
   --chip: rgba(13, 110, 253, 0.10);
   --accent: #0d6efd;
   --danger: #dc3545;
-  --today: rgba(13, 110, 253, 0.08);
+  --today: rgba(13, 110, 253, 0.10);
 }
 
 html.dark {
@@ -26,7 +26,7 @@ html.dark {
   --line: #495057;
   --soft: #2b3035;
   --chip: rgba(255, 255, 255, 0.06);
-  --today: rgba(13, 110, 253, 0.16);
+  --today: rgba(13, 110, 253, 0.12);
 }
 
 * { box-sizing: border-box; }
@@ -164,7 +164,20 @@ main { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .day.out { background: var(--soft); color: var(--muted); }
 .day.today { background: var(--today); }
 .day .num { font-size: 12px; color: var(--muted); }
-.day.today .num { color: var(--accent); font-weight: 700; }
+/* Today is a filled badge, not a tinted number: a number in the accent colour on a tint of the same
+   colour is a number nobody sees (checked on a 1400 px screenshot, 21.11.2026). */
+.day.today .num {
+  color: #fff;
+  background: var(--accent);
+  border-radius: 10px;
+  min-width: 20px;
+  height: 20px;
+  line-height: 20px;
+  padding: 0 4px;
+  text-align: center;
+  font-weight: 700;
+  align-self: flex-start;
+}
 
 .chip {
   border: none;
@@ -192,25 +205,51 @@ main { flex: 1 1 auto; min-height: 0; overflow: auto; }
   position: relative;
 }
 
+/* The head (days and all-day events) stays on top while the hours scroll under it. */
+.week-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
 .week .corner { background: var(--soft); }
-.week .weekday { border-bottom: 1px solid var(--line); }
+.week .weekday { padding: 5px 6px; font-size: 12px; color: var(--muted); text-align: center; }
 .week .weekday.today { color: var(--accent); font-weight: 700; }
 
 .allday-label { font-size: 11px; color: var(--muted); padding: 3px 4px; text-align: right; }
-.allday-cell { min-height: 22px; padding: 2px; border-bottom: 1px solid var(--line); }
+.allday-cell {
+  min-height: 22px;
+  padding: 1px 2px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
-.hours { border-top: 1px solid var(--line); position: relative; }
-.hour { height: 44px; border-bottom: 1px solid var(--line); }
-.hour-label { font-size: 11px; color: var(--muted); text-align: right; padding-right: 6px; height: 44px; transform: translateY(-7px); }
+.week-body { border-top: 0; }
 
-.day-col { position: relative; border-left: 1px solid var(--line); }
+.hour-labels { border-right: 1px solid var(--line); }
+.hl {
+  height: 44px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  padding-right: 6px;
+  transform: translateY(-7px);
+}
+
+.day-col {
+  position: relative;
+  border-left: 1px solid var(--line);
+}
+
 .day-col .slot { height: 44px; border-bottom: 1px solid var(--line); cursor: pointer; }
-.day-col .slot:nth-child(odd) { background: transparent; }
+.day-col .slot:nth-child(24) { border-bottom: none; }
 
 .timed {
   position: absolute;
-  left: 2px;
-  right: 2px;
   border-radius: 5px;
   border-left: 3px solid var(--accent);
   background: var(--chip);
@@ -221,11 +260,10 @@ main { flex: 1 1 auto; min-height: 0; overflow: auto; }
   text-align: left;
   white-space: nowrap;
   text-overflow: ellipsis;
+  z-index: 1;
 }
 
 .timed .t { color: var(--muted); font-size: 10px; display: block; }
-
-.nowline { position: absolute; left: 0; right: 0; height: 2px; background: #dc3545; pointer-events: none; }
 
 /* --- the agenda ------------------------------------------------------------------------------ */
 
@@ -275,8 +313,12 @@ dialog h2 { margin: 0 0 12px; font-size: 16px; }
 }
 
 .field textarea { resize: vertical; }
-.pair { display: flex; gap: 6px; }
-.times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pair { display: flex; gap: 6px; min-width: 0; }
+.pair input { flex: 1 1 auto; min-width: 0; }
+/* Start and end under each other: two dates and two times side by side overflow the dialog, and a
+   form with a horizontal scrollbar is a form somebody breaks (21.11.2026). */
+.times { display: block; }
+.times .field { min-width: 0; }
 .check { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; }
 .check input { accent-color: var(--accent); }
 .hint { font-size: 12px; color: var(--muted); margin: 4px 0 8px; }
@@ -299,4 +341,3 @@ dialog h2 { margin: 0 0 12px; font-size: 16px; }
   text-overflow: ellipsis;
 }
 
-.loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
