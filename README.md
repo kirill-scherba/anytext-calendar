@@ -38,7 +38,7 @@ CGO_ENABLED=0 go build -o ~/.local/bin/anytext-calendar .
 
 curl -s -X POST http://127.0.0.1:7787/api/command -H 'Content-Type: application/json' -d '{
   "command":"modules.install",
-  "args":{"id":"calendar","name":"Календарь","addr":"127.0.0.1:7840",
+  "args":{"id":"calendar","name":"Календарь","names":{"ru":"Календарь","en":"Calendar"},"addr":"127.0.0.1:7840",
           "command":["'"$HOME"'/.local/bin/anytext-calendar","-addr","127.0.0.1:7840"],
           "auto_start":true}}'
 

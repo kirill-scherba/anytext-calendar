@@ -891,6 +891,8 @@ function bind() {
 /** applyTexts writes the words of the screen: the same dictionary, applied once. */
 function applyTexts() {
   document.documentElement.lang = lang
+  // The tab and the frame title: a direct link in an English browser must not read "Календарь".
+  document.title = t('calendar')
   for (const el of document.querySelectorAll('[data-i18n]')) {
     el.textContent = t(el.dataset.i18n)
   }
