@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="{{.Prefix}}/" />
+  <title>Календарь</title>
+  <link rel="stylesheet" href="ui/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="nav">
+      <button type="button" class="icon" id="prev" data-i18n-title="back">‹</button>
+      <button type="button" class="text" id="today" data-i18n="today">Сегодня</button>
+      <button type="button" class="icon" id="next" data-i18n-title="forward">›</button>
+      <span class="period" id="period"></span>
+    </div>
+    <div class="views" role="group">
+      <button type="button" class="text" data-view="month" data-i18n="month">Месяц</button>
+      <button type="button" class="text" data-view="week" data-i18n="week">Неделя</button>
+      <button type="button" class="text" data-view="agenda" data-i18n="agenda">Список</button>
+    </div>
+    <div class="actions">
+      <button type="button" class="text primary" id="new" data-i18n="newEvent">+ Событие</button>
+      <button type="button" class="icon" id="refresh" data-i18n-title="refresh">⟳</button>
+    </div>
+  </header>
+
+  <div class="calendars" id="calendars"></div>
+  <div class="notice" id="notice" hidden></div>
+  <main id="view"></main>
+  <footer class="foot">
+    <span id="footInfo"></span>
+  </footer>
+
+  <!-- The editor. A dialog, not a page: a person fixes an event without losing the month behind it. -->
+  <dialog id="editor">
+    <form id="form" novalidate>
+      <h2 id="editorTitle" data-i18n="event">Событие</h2>
+
+      <label class="field">
+        <span data-i18n="title">Название</span>
+        <input type="text" id="fSummary" autocomplete="off" />
+      </label>
+
+      <label class="field">
+        <span data-i18n="calendar">Календарь</span>
+        <select id="fCalendar"></select>
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="fAllDay" />
+        <span data-i18n="allDay">Весь день</span>
+      </label>
+
+      <div class="times">
+        <label class="field">
+          <span data-i18n="start">Начало</span>
+          <span class="pair">
+            <input type="date" id="fStartDate" />
+            <input type="time" id="fStartTime" />
+          </span>
+        </label>
+        <label class="field">
+          <span data-i18n="end">Конец</span>
+          <span class="pair">
+            <input type="date" id="fEndDate" />
+            <input type="time" id="fEndTime" />
+          </span>
+        </label>
+      </div>
+
+      <label class="field">
+        <span data-i18n="location">Место</span>
+        <input type="text" id="fLocation" autocomplete="off" />
+      </label>
+
+      <label class="field">
+        <span data-i18n="description">Описание</span>
+        <textarea id="fDescription" rows="3"></textarea>
+      </label>
+
+      <label class="field">
+        <span data-i18n="attendees">Участники (адреса через запятую)</span>
+        <input type="text" id="fAttendees" autocomplete="off" />
+      </label>
+
+      <p class="hint" id="repeatHint" hidden data-i18n="repeatHint"></p>
+      <p class="hint" id="linkHint" hidden><a id="htmlLink" target="_blank" rel="noopener" data-i18n="inGoogle"></a></p>
+      <p class="error" id="editorError" hidden></p>
+
+      <div class="buttons">
+        <button type="button" class="text danger" id="delete" data-i18n="delete">Удалить</button>
+        <span class="spacer"></span>
+        <button type="button" class="text" id="cancel" data-i18n="cancel">Отмена</button>
+        <button type="submit" class="text primary" id="save" data-i18n="save">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="ui/app.js"></script>
+</body>
+</html>
