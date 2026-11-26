@@ -1,0 +1,28 @@
+{
+  "id": "calendar",
+  "names": {
+    "ru": "Календарь",
+    "en": "Calendar"
+  },
+  "description": {
+    "ru": "Календарь из mail-mcp: месяц, неделя, список и редактор событий",
+    "en": "The calendar mail-mcp already owns: a month, a week, a list and an event editor"
+  },
+  "category": "tools",
+  "binary": "anytext-calendar",
+  "addr": "127.0.0.1:7840",
+  "args": [
+    "-addr",
+    "127.0.0.1:7840"
+  ],
+  "ui": "ui",
+  "auto_start": true,
+  "strip": true,
+  "platforms": [
+    "linux-amd64",
+    "linux-arm64",
+    "windows-amd64",
+    "darwin-arm64",
+    "darwin-amd64"
+  ]
+}
